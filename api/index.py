@@ -24,7 +24,7 @@ load_dotenv()
 
 # ── Gemini API Setup ──────────────────────────────────────────────────────
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-image-preview")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash-image-preview")
 
 GEMINI_AVAILABLE = False
 gemini_client = None
