@@ -665,7 +665,7 @@ async def websocket_endpoint(websocket: WebSocket, lobby_code: str, player_id: s
                 except Exception:
                     pass
                 return  # Exit WS handler
-
+# fake comment
     except WebSocketDisconnect:
         lobby.connections.pop(player_id, None)
         player = lobby.players.get(player_id)

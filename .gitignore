@@ -10,3 +10,5 @@ __pycache__/
 venv/
 generated_images/
 target_images/
+.vercel
+.env*.local
