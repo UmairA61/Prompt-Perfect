@@ -1,0 +1,379 @@
+/* ── Chat Results Screen (Gartic Phone style) ── */
+.chat-results-screen {
+  padding: 2vw 3vw;
+}
+
+.chat-results-header {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto 20px;
+}
+
+.chat-results-header h2 {
+  margin: 0;
+  font-size: 48px;
+}
+
+.winner-pill-anim {
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.chat-results-layout {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Chat Window ── */
+.chat-window {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  border: 5px solid var(--ink);
+  border-radius: 34px;
+  background: var(--paper-light);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.chat-window::-webkit-scrollbar { width: 10px; }
+.chat-window::-webkit-scrollbar-track { background: transparent; }
+.chat-window::-webkit-scrollbar-thumb {
+  background: var(--ink);
+  border-radius: 10px;
+}
+
+/* ── Chat Messages ── */
+.chat-message {
+  display: flex;
+  gap: 14px;
+  max-width: 85%;
+  animation: chatSlideIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.chat-left { align-self: flex-start; }
+.chat-right { align-self: flex-end; flex-direction: row-reverse; }
+.chat-center { align-self: center; max-width: 100%; }
+
+.chat-avatar-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.chat-sender-name {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.chat-bot-avatar {
+  font-size: 28px !important;
+  display: grid !important;
+  place-items: center;
+}
+
+/* ── Chat Bubbles ── */
+.chat-bubble {
+  border: 4px solid var(--ink);
+  border-radius: 24px;
+  padding: 16px;
+  box-shadow: 6px 6px 0 rgba(25, 25, 25, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chat-bubble-left {
+  background: var(--white);
+  border-bottom-left-radius: 6px;
+}
+
+.chat-bubble-right {
+  background: var(--sky);
+  border-bottom-right-radius: 6px;
+}
+
+.chat-winner .chat-bubble-right {
+  background: var(--lemon);
+  border-width: 5px;
+  box-shadow: 8px 8px 0 var(--pink);
+}
+
+.chat-image {
+  width: 100%;
+  max-width: 380px;
+  border-radius: 18px;
+  border: 3px solid var(--ink);
+  object-fit: cover;
+}
+
+.chat-image-placeholder {
+  width: 300px;
+  height: 200px;
+  border-radius: 18px;
+  border: 3px dashed var(--ink);
+  display: grid;
+  place-items: center;
+  background: rgba(0,0,0,0.05);
+  font-weight: 800;
+}
+
+.chat-caption {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.chat-prompt-msg {
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.5);
+  border-radius: 14px;
+  border: 2px solid var(--ink);
+}
+
+.chat-prompt-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.chat-prompt-msg p {
+  margin: 4px 0 0;
+  font-size: 18px;
+  font-weight: 800;
+  font-style: italic;
+  line-height: 1.3;
+}
+
+.chat-score {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 18px;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  font-size: 20px;
+  font-weight: 800;
+  font-family: 'Bangers', Impact, fantasy;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  animation: scorePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.3s both;
+}
+
+.score-high { background: var(--lime); }
+.score-mid { background: var(--lemon); }
+.score-low { background: var(--pink); color: var(--white); }
+
+/* ── Winner Announcement ── */
+.chat-winner-announce {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 28px 40px;
+  border: 5px solid var(--ink);
+  border-radius: 34px;
+  background: var(--lemon);
+  box-shadow: 10px 10px 0 var(--pink);
+  animation: winnerPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.chat-winner-announce h3 {
+  margin: 0;
+  font-size: 32px;
+  font-family: 'Bangers', Impact, fantasy;
+  letter-spacing: 0.03em;
+}
+
+/* ── Chat Sidebar ── */
+.chat-sidebar {
+  flex: 0 0 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.original-prompt-card h3,
+.round-scores-card h3 {
+  margin: 0 0 12px;
+  font-size: 26px;
+}
+
+.original-prompt-text {
+  margin: 0;
+  font-size: 20px;
+  font-style: italic;
+  line-height: 1.3;
+}
+
+.score-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  margin-top: 8px;
+  border: 3px solid var(--ink);
+  border-radius: 18px;
+  background: var(--paper-light);
+  font-size: 18px;
+}
+
+.score-row-winner {
+  background: var(--lemon);
+  transform: rotate(-0.5deg);
+}
+
+.score-rank {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--white);
+  font-family: 'Bangers', Impact, fantasy;
+  font-size: 18px;
+}
+
+.score-row em {
+  margin-left: auto;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.waiting-next-card {
+  min-height: 60px;
+  display: grid;
+  place-items: center;
+}
+
+/* ── Animations ── */
+@keyframes chatSlideIn {
+  from { opacity: 0; transform: translateY(30px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes scorePop {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
+}
+
+@keyframes popIn {
+  from { transform: scale(0) rotate(-10deg); opacity: 0; }
+  to { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+/* ── Game Screens additions ── */
+.target-image-container {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+  border: 5px solid var(--ink);
+  border-radius: 34px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #aeefff 0%, #ffb6dc 58%, #ffe45e 100%);
+  box-shadow: var(--shadow);
+}
+
+.target-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.image-sticker-overlay {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  display: grid;
+  place-items: center;
+  min-height: 48px;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  background: var(--white);
+  font-weight: 800;
+  text-align: center;
+}
+
+.gen-target-thumb {
+  width: 100%;
+  max-width: 380px;
+  border-radius: 26px;
+  border: 4px solid var(--ink);
+  object-fit: cover;
+  box-shadow: 6px 6px 0 rgba(25, 25, 25, 0.15);
+}
+
+.submitted-card {
+  padding: 16px;
+}
+
+.timer-urgent {
+  background: var(--pink) !important;
+  color: var(--white);
+  animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.08); }
+}
+
+.error-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  padding: 16px 28px;
+  border: 4px solid var(--ink);
+  border-radius: 20px;
+  background: var(--pink);
+  color: var(--white);
+  font-weight: 800;
+  font-size: 18px;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  animation: popIn 0.3s ease;
+}
+
+.error-toast span {
+  font-size: 13px;
+  opacity: 0.7;
+  margin-left: 8px;
+}
+
+.timer {
+  display: grid;
+  place-items: center;
+  min-width: 140px;
+  height: 72px;
+  border: var(--border);
+  border-radius: 22px;
+  background: var(--lemon);
+  font-family: 'Bangers', Impact, fantasy;
+  font-size: 42px;
+  letter-spacing: 0.06em;
+  box-shadow: 5px 5px 0 rgba(25, 25, 25, 0.12);
+}

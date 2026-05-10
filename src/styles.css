@@ -22,6 +22,8 @@
 body {
   margin: 0;
   min-width: 1200px;
+  height: 100vh;
+  overflow: hidden;
   color: var(--ink);
   background:
     radial-gradient(circle at 18px 18px, rgba(25, 25, 25, 0.1) 2px, transparent 3px) 0 0 / 34px 34px,
@@ -48,7 +50,8 @@ button {
 .app-stage {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .screen {
@@ -56,7 +59,7 @@ button {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 4vw 6vw;
+  padding: 2.5vh 4vw;
   overflow: hidden;
   background: var(--paper);
 }
@@ -337,7 +340,28 @@ textarea {
   z-index: 2;
   max-width: 1400px;
   width: 100%;
-  margin: 40px auto 30px;
+  margin: 20px auto 16px;
+}
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 8px 20px;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  background: var(--white);
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 rgba(25, 25, 25, 0.12);
+  transition: transform 0.15s ease;
+}
+
+.back-button:hover {
+  transform: translateX(-4px);
+  background: var(--lemon);
 }
 
 .page-heading h2,
@@ -345,7 +369,7 @@ textarea {
 .results-heading h2,
 .celebration h2 {
   margin: 0;
-  font-size: 58px;
+  font-size: 46px;
   line-height: 0.95;
 }
 
@@ -358,9 +382,9 @@ textarea {
 .generating-main p,
 .celebration p,
 .round-history span {
-  margin: 12px 0 0;
-  font-size: 25px;
-  line-height: 1.22;
+  margin: 8px 0 0;
+  font-size: 20px;
+  line-height: 1.15;
 }
 
 .home-screen {
@@ -416,13 +440,21 @@ textarea {
 }
 
 .hero-card {
-  width: 620px;
-  height: 548px;
+  width: 560px;
+  min-height: 0;
+  max-height: 90vh;
+  overflow: hidden;
+}
+
+.hero-card > p {
+  margin: 10px 0 0;
+  font-size: 20px;
+  line-height: 1.15;
 }
 
 .hero-media {
   position: relative;
-  height: 340px;
+  height: 280px;
   margin-top: 22px;
 }
 
@@ -462,11 +494,11 @@ textarea {
   position: relative;
   z-index: 2;
   max-width: 1400px;
-  margin: 60px auto 0;
+  margin: 20px auto 0;
   width: 100%;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 26px;
+  gap: 20px;
 }
 
 .loop-card {
@@ -507,26 +539,44 @@ textarea {
 .form-card {
   flex: 1;
   max-width: 790px;
-  min-height: 620px;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+.preview-settings {
+  margin: 16px 0;
+}
+
+.preview-line {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 3px dashed rgba(25, 25, 25, 0.25);
+  font-size: 20px;
+}
+
+.preview-line strong {
+  font-family: 'Bangers', Impact, fantasy;
+  font-size: 28px;
 }
 
 .selector-block {
   display: grid;
-  gap: 12px;
+  gap: 6px;
 }
 
 .category-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 13px;
+  gap: 8px;
 }
 
 .room-preview {
   flex: 0 0 405px;
-  min-height: 420px;
+  min-height: 0;
 }
 
 .code-ticket {
@@ -544,12 +594,12 @@ textarea {
 
 .join-form {
   max-width: 610px;
-  min-height: 478px;
+  min-height: 0;
 }
 
 .join-mascot {
   flex: 0 0 420px;
-  min-height: 510px;
+  min-height: 0;
   display: grid;
   align-content: center;
   justify-items: center;
@@ -592,7 +642,13 @@ textarea {
   justify-content: space-between;
   max-width: 1400px;
   width: 100%;
-  margin: 40px auto 30px;
+  margin: 16px auto 16px;
+}
+
+.lobby-header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .lobby-header h2 {
@@ -628,15 +684,21 @@ textarea {
   position: relative;
   z-index: 2;
   display: flex;
-  gap: 40px;
+  gap: 30px;
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .player-panel {
   flex: 1;
-  min-height: 560px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
 }
 
 .player-panel.player-only {
@@ -745,16 +807,19 @@ textarea {
   position: relative;
   z-index: 2;
   display: flex;
-  gap: 40px;
+  gap: 30px;
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .round-content > .image-placeholder {
   flex: 1;
-  min-height: 520px;
-  max-height: 60vh;
+  min-height: 0;
+  max-height: none;
 }
 
 .round-sidebar {

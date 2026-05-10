@@ -8,3 +8,6 @@ __pycache__/
 *.jpg
 *.jpeg
 *.log
+venv/
+generated_images/
+target_images/
