@@ -1,6 +1,7 @@
 """
 Prompt Perfect — Vercel Serverless API
 Single FastAPI function handling all game logic.
+Image generation uses the Gemini API (google-genai) with an API key.
 Images are returned as base64 data URLs embedded in JSON to avoid
 stateless-serverless in-memory storage issues.
 """
@@ -21,32 +22,28 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ── HuggingFace Setup ────────────────────────────────────────────────────
-hf_token = os.environ.get("HF_TOKEN", "")
-HF_AVAILABLE = False
-hf_client = None
-HF_INIT_ERROR = ""
+# ── Gemini API Setup ──────────────────────────────────────────────────────
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-image-preview")
 
-# Timeout per model attempt (seconds) — must fit within Vercel's function limit
-HF_TIMEOUT = 55
+GEMINI_AVAILABLE = False
+gemini_client = None
+genai_types = None
+GEMINI_INIT_ERROR = ""
 
-if hf_token:
+if GEMINI_API_KEY:
     try:
-        from huggingface_hub import InferenceClient
-        hf_client = InferenceClient(api_key=hf_token, timeout=HF_TIMEOUT)
-        HF_AVAILABLE = True
+        from google import genai
+        from google.genai import types as _genai_types
+        gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+        genai_types = _genai_types
+        GEMINI_AVAILABLE = True
     except ImportError as e:
-        HF_INIT_ERROR = f"ImportError: {e}"
+        GEMINI_INIT_ERROR = f"ImportError: {e}"
     except Exception as e:
-        HF_INIT_ERROR = f"Init error: {e}"
+        GEMINI_INIT_ERROR = f"{type(e).__name__}: {e}"
 else:
-    HF_INIT_ERROR = "HF_TOKEN environment variable not set"
-
-# Models to try in order — schnell is fastest, SDXL as fallback
-HF_MODELS = [
-    "black-forest-labs/FLUX.1-schnell",
-    "stabilityai/stable-diffusion-xl-base-1.0",
-]
+    GEMINI_INIT_ERROR = "GEMINI_API_KEY environment variable not set"
 
 app = FastAPI(title="Prompt Perfect")
 
@@ -72,44 +69,47 @@ TARGET_IMAGES = [
 
 # ── Image Generation ──────────────────────────────────────────────────────
 def generate_image_data_url(prompt: str) -> str:
-    """Generate an image and return as a data:image/png;base64,... URL."""
-    if not HF_AVAILABLE:
-        print(f"[IMG] HF not available: {HF_INIT_ERROR}. Using placeholder.")
+    """Generate an image via Gemini API (google-genai) and return as data URL."""
+    if not GEMINI_AVAILABLE:
+        print(f"[IMG] Gemini not available: {GEMINI_INIT_ERROR}. Using placeholder.")
         return _bytes_to_data_url(_make_placeholder(prompt))
 
-    # Ensure prompt is long enough for good generation
     gen_prompt = prompt.strip()
     if len(gen_prompt) < 15:
         gen_prompt = f"{gen_prompt}, detailed digital illustration, vibrant colors, high quality, 4k"
 
-    # Try each model
-    for model in HF_MODELS:
-        start = time.time()
-        try:
-            print(f"[IMG] Trying model={model} prompt='{gen_prompt[:60]}...'")
-            image = hf_client.text_to_image(
-                gen_prompt,
-                model=model,
-            )
-            elapsed = time.time() - start
-            if image is None:
-                print(f"[IMG] Model {model} returned None after {elapsed:.1f}s")
-                continue
-            buf = io.BytesIO()
-            image.save(buf, format="PNG")
-            img_bytes = buf.getvalue()
-            if len(img_bytes) < 1000:
-                print(f"[IMG] Model {model} returned tiny image ({len(img_bytes)} bytes) after {elapsed:.1f}s")
-                continue
-            print(f"[IMG] SUCCESS with {model}: {len(img_bytes)} bytes in {elapsed:.1f}s")
-            return _bytes_to_data_url(img_bytes)
-        except Exception as e:
-            elapsed = time.time() - start
-            print(f"[IMG] Model {model} FAILED after {elapsed:.1f}s: {type(e).__name__}: {e}")
-            continue
+    start = time.time()
+    try:
+        print(f"[IMG] Gemini generate model={GEMINI_MODEL} prompt='{gen_prompt[:60]}...'")
+        response = gemini_client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=gen_prompt,
+            config=genai_types.GenerateContentConfig(
+                response_modalities=["IMAGE"],
+            ),
+        )
+        elapsed = time.time() - start
 
-    # All models failed
-    print(f"[IMG] ALL MODELS FAILED for prompt '{prompt[:50]}'. Using placeholder.")
+        for cand in (response.candidates or []):
+            content = getattr(cand, "content", None)
+            if not content:
+                continue
+            for part in (content.parts or []):
+                inline = getattr(part, "inline_data", None)
+                if inline and getattr(inline, "data", None):
+                    img_bytes = inline.data
+                    mime = getattr(inline, "mime_type", None) or "image/png"
+                    print(f"[IMG] SUCCESS Gemini: {len(img_bytes)} bytes ({mime}) in {elapsed:.1f}s")
+                    b64 = base64.b64encode(img_bytes).decode("ascii")
+                    return f"data:{mime};base64,{b64}"
+
+        print(f"[IMG] Gemini returned no image parts after {elapsed:.1f}s")
+    except Exception as e:
+        elapsed = time.time() - start
+        print(f"[IMG] Gemini FAILED after {elapsed:.1f}s: {type(e).__name__}: {e}")
+        traceback.print_exc()
+
+    print(f"[IMG] Falling back to placeholder for '{prompt[:50]}'")
     return _bytes_to_data_url(_make_placeholder(prompt))
 
 
@@ -338,10 +338,10 @@ class GameActionRequest(BaseModel):
 def root():
     return {
         "status": "Prompt Perfect Server Online",
-        "hf_available": HF_AVAILABLE,
-        "hf_token_set": bool(hf_token),
-        "hf_error": HF_INIT_ERROR if not HF_AVAILABLE else None,
-        "models": HF_MODELS,
+        "gemini_available": GEMINI_AVAILABLE,
+        "gemini_api_key_set": bool(GEMINI_API_KEY),
+        "gemini_error": GEMINI_INIT_ERROR if not GEMINI_AVAILABLE else None,
+        "model": GEMINI_MODEL,
     }
 
 

@@ -1,95 +1,120 @@
 """
-Image generation using HuggingFace Inference API.
-Falls back to placeholder images if HF_TOKEN isn't set.
+Image generation using the Gemini API (google-genai) with gemini-3.1-flash-image-preview.
+Falls back to placeholder images if GEMINI_API_KEY isn't set.
 """
 import os
 import uuid
 import random
 import time
-from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
-hf_token = os.getenv("HF_TOKEN")
 
-HF_AVAILABLE = False
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.1-flash-image-preview")
 
-if hf_token:
+GEMINI_AVAILABLE = False
+gemini_client = None
+genai_types = None
+GEMINI_INIT_ERROR = ""
+
+if GEMINI_API_KEY:
     try:
-        from huggingface_hub import InferenceClient
-        client = InferenceClient(api_key=hf_token)
-        HF_AVAILABLE = True
-    except ImportError:
-        print("⚠️  huggingface_hub not installed. Using placeholder images.")
+        from google import genai
+        from google.genai import types as _genai_types
+        gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+        genai_types = _genai_types
+        GEMINI_AVAILABLE = True
+    except ImportError as e:
+        GEMINI_INIT_ERROR = f"ImportError: {e}"
+        print(f"⚠️  google-genai not installed: {e}. Using placeholder images.")
+    except Exception as e:
+        GEMINI_INIT_ERROR = f"{type(e).__name__}: {e}"
+        print(f"⚠️  Gemini init failed: {e}. Using placeholder images.")
 else:
-    print("⚠️  HF_TOKEN not set. Using placeholder images.")
+    GEMINI_INIT_ERROR = "GEMINI_API_KEY not set"
+    print("⚠️  GEMINI_API_KEY not set. Using placeholder images.")
 
 
 def generate_guess_image(prompt: str, save_path: str = None):
     """
-    Uses Hugging Face to generate an image from a player's prompt.
-    Falls back to a colored placeholder if HF isn't available.
-    save_path: optional specific file path to save to. If None, generates a unique name.
+    Generate an image from a prompt using the Gemini API.
+    Falls back to a colored placeholder if the API isn't available.
+    save_path: optional file path. If None, generates a unique name.
     """
     if save_path is None:
         save_path = f"temp_gen_{uuid.uuid4().hex[:8]}.png"
 
-    if HF_AVAILABLE:
-        return _hf_generate(prompt, save_path)
-    else:
-        return _placeholder_generate(prompt, save_path)
+    if GEMINI_AVAILABLE:
+        return _gemini_generate(prompt, save_path)
+    return _placeholder_generate(prompt, save_path)
 
 
-def _hf_generate(prompt: str, save_path: str):
-    """Generate with HuggingFace, with retry logic for robustness."""
+def _gemini_generate(prompt: str, save_path: str):
+    """Generate image with Gemini API, with retry logic."""
     max_retries = 2
-    # Enhance short/vague prompts to improve generation success
     enhanced_prompt = prompt
     if len(prompt.strip()) < 20:
         enhanced_prompt = f"{prompt}, detailed digital illustration, high quality"
 
     for attempt in range(max_retries + 1):
+        start = time.time()
         try:
-            print(f"🎨 Generating image for: {enhanced_prompt}... (attempt {attempt + 1})")
-            
-            image = client.text_to_image(
-                enhanced_prompt,
-                model="black-forest-labs/FLUX.1-schnell"
+            print(f"🎨 Gemini generating ({GEMINI_MODEL}): {enhanced_prompt[:60]}... (attempt {attempt + 1})")
+            response = gemini_client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=enhanced_prompt,
+                config=genai_types.GenerateContentConfig(
+                    response_modalities=["IMAGE"],
+                ),
             )
-            
-            image.save(save_path)
-            print(f"✅ Image saved to {save_path}")
-            return save_path
-            
+            elapsed = time.time() - start
+
+            for cand in (response.candidates or []):
+                content = getattr(cand, "content", None)
+                if not content:
+                    continue
+                for part in (content.parts or []):
+                    inline = getattr(part, "inline_data", None)
+                    if inline and getattr(inline, "data", None):
+                        img_bytes = inline.data
+                        with open(save_path, "wb") as f:
+                            f.write(img_bytes)
+                        print(f"✅ Image saved to {save_path} ({len(img_bytes)} bytes in {elapsed:.1f}s)")
+                        return save_path
+
+            print(f"⚠️  No image parts in response after {elapsed:.1f}s")
         except Exception as e:
-            print(f"⚠️  Attempt {attempt + 1} failed: {e}")
-            if attempt < max_retries:
-                time.sleep(1)  # Brief pause before retry
-            else:
-                print(f"❌ All retries failed for: {prompt}")
-                return _placeholder_generate(prompt, save_path)
+            elapsed = time.time() - start
+            print(f"⚠️  Attempt {attempt + 1} failed after {elapsed:.1f}s: {type(e).__name__}: {e}")
+
+        if attempt < max_retries:
+            time.sleep(1)
+
+    print(f"❌ All retries failed for: {prompt}")
+    return _placeholder_generate(prompt, save_path)
 
 
 def _placeholder_generate(prompt: str, save_path: str):
     """Generate a simple colored placeholder image for dev/demo."""
     try:
         from PIL import Image, ImageDraw
-        
+
         r = random.randint(100, 220)
         g = random.randint(100, 220)
         b = random.randint(100, 220)
-        
+
         img = Image.new("RGB", (512, 512), (r, g, b))
         draw = ImageDraw.Draw(img)
-        
+
         for i in range(0, 512, 64):
-            draw.line([(i, 0), (512, 512 - i)], fill=(r-30, g-30, b-30), width=2)
-        
+            draw.line([(i, 0), (512, 512 - i)], fill=(r - 30, g - 30, b - 30), width=2)
+
         text = prompt[:60] + ("..." if len(prompt) > 60 else "")
         draw.rectangle([(20, 400), (492, 492)], fill=(0, 0, 0))
         draw.text((30, 420), text, fill=(255, 255, 255))
         draw.text((30, 30), "DEMO MODE", fill=(255, 255, 255))
-        
+
         img.save(save_path)
         return save_path
     except Exception as e:
