@@ -1,7 +1,8 @@
 """
 Prompt Perfect — Vercel Serverless API
 Single FastAPI function handling all game logic.
-Images stored in memory, polling replaces WebSocket.
+Images are returned as base64 data URLs embedded in JSON to avoid
+stateless-serverless in-memory storage issues.
 """
 import os
 import uuid
@@ -9,6 +10,7 @@ import time
 import random
 import string
 import io
+import base64
 import traceback
 from typing import Optional
 
@@ -25,10 +27,13 @@ HF_AVAILABLE = False
 hf_client = None
 HF_INIT_ERROR = ""
 
+# Timeout per model attempt (seconds) — must fit within Vercel's function limit
+HF_TIMEOUT = 55
+
 if hf_token:
     try:
         from huggingface_hub import InferenceClient
-        hf_client = InferenceClient(api_key=hf_token)
+        hf_client = InferenceClient(api_key=hf_token, timeout=HF_TIMEOUT)
         HF_AVAILABLE = True
     except ImportError as e:
         HF_INIT_ERROR = f"ImportError: {e}"
@@ -37,17 +42,15 @@ if hf_token:
 else:
     HF_INIT_ERROR = "HF_TOKEN environment variable not set"
 
-# Models to try in order (primary → fallbacks)
+# Models to try in order — schnell is fastest, SDXL as fallback
 HF_MODELS = [
     "black-forest-labs/FLUX.1-schnell",
     "stabilityai/stable-diffusion-xl-base-1.0",
-    "black-forest-labs/FLUX.1-dev",
 ]
 
 app = FastAPI(title="Prompt Perfect")
 
 # ── In-Memory Stores ─────────────────────────────────────────────────────
-IMAGE_STORE: dict[str, bytes] = {}  # key -> PNG bytes
 lobbies: dict = {}  # code -> GameLobby
 
 # ── Target Image Pool ────────────────────────────────────────────────────
@@ -68,14 +71,11 @@ TARGET_IMAGES = [
 
 
 # ── Image Generation ──────────────────────────────────────────────────────
-def generate_image(prompt: str) -> str:
-    """Generate an image with retries across multiple models. Always returns a key."""
-    key = f"img_{uuid.uuid4().hex[:12]}"
-
+def generate_image_data_url(prompt: str) -> str:
+    """Generate an image and return as a data:image/png;base64,... URL."""
     if not HF_AVAILABLE:
         print(f"[IMG] HF not available: {HF_INIT_ERROR}. Using placeholder.")
-        IMAGE_STORE[key] = _make_placeholder(prompt)
-        return key
+        return _bytes_to_data_url(_make_placeholder(prompt))
 
     # Ensure prompt is long enough for good generation
     gen_prompt = prompt.strip()
@@ -84,32 +84,39 @@ def generate_image(prompt: str) -> str:
 
     # Try each model
     for model in HF_MODELS:
+        start = time.time()
         try:
             print(f"[IMG] Trying model={model} prompt='{gen_prompt[:60]}...'")
             image = hf_client.text_to_image(
                 gen_prompt,
                 model=model,
             )
+            elapsed = time.time() - start
             if image is None:
-                print(f"[IMG] Model {model} returned None")
+                print(f"[IMG] Model {model} returned None after {elapsed:.1f}s")
                 continue
             buf = io.BytesIO()
             image.save(buf, format="PNG")
             img_bytes = buf.getvalue()
             if len(img_bytes) < 1000:
-                print(f"[IMG] Model {model} returned suspiciously small image ({len(img_bytes)} bytes)")
+                print(f"[IMG] Model {model} returned tiny image ({len(img_bytes)} bytes) after {elapsed:.1f}s")
                 continue
-            IMAGE_STORE[key] = img_bytes
-            print(f"[IMG] SUCCESS with {model}: {len(img_bytes)} bytes")
-            return key
+            print(f"[IMG] SUCCESS with {model}: {len(img_bytes)} bytes in {elapsed:.1f}s")
+            return _bytes_to_data_url(img_bytes)
         except Exception as e:
-            print(f"[IMG] Model {model} FAILED: {type(e).__name__}: {e}")
+            elapsed = time.time() - start
+            print(f"[IMG] Model {model} FAILED after {elapsed:.1f}s: {type(e).__name__}: {e}")
             continue
 
-    # All models failed — use placeholder
+    # All models failed
     print(f"[IMG] ALL MODELS FAILED for prompt '{prompt[:50]}'. Using placeholder.")
-    IMAGE_STORE[key] = _make_placeholder(prompt)
-    return key
+    return _bytes_to_data_url(_make_placeholder(prompt))
+
+
+def _bytes_to_data_url(img_bytes: bytes) -> str:
+    """Convert raw PNG bytes to a data URL."""
+    b64 = base64.b64encode(img_bytes).decode("ascii")
+    return f"data:image/png;base64,{b64}"
 
 
 def _make_placeholder(prompt: str) -> bytes:
@@ -128,7 +135,6 @@ def _make_placeholder(prompt: str) -> bytes:
         img.save(buf, format="PNG")
         return buf.getvalue()
     except Exception:
-        import base64
         return base64.b64decode(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
         )
@@ -151,7 +157,6 @@ class Player:
         self.ready = False
         self.points = 0
         self.current_prompt = None
-        self.current_image_key = None
         self.current_score = None
         self.color = random.choice(["pink", "sky", "lime", "lemon", "violet", "orange"])
         self.initials = name[:2].upper()
@@ -183,7 +188,7 @@ class GameLobby:
         self.used_target_ids: list[str] = []
 
         self.target_image = None
-        self.target_image_key = None
+        self.target_image_data_url = None  # base64 data URL
         self.round_start_time = None
         self.submissions: dict[str, dict] = {}
         self.round_results = []
@@ -209,7 +214,7 @@ class GameLobby:
             "current_round": self.current_round,
             "total_rounds": self.total_rounds,
             "players": {pid: p.to_dict() for pid, p in self.players.items()},
-            "target_image_url": f"/api/image/{self.target_image_key}" if self.target_image_key else None,
+            "target_image_url": self.target_image_data_url,
             "round_start_time": self.round_start_time,
             "submissions_count": len(self.submissions),
             "round_results": self.round_results,
@@ -233,7 +238,6 @@ def generate_lobby_code() -> str:
         )
         if code not in lobbies:
             return code
-
 
 
 def pick_target_image(lobby: GameLobby) -> dict:
@@ -264,7 +268,7 @@ def run_comparison(lobby: GameLobby):
             "player_initials": player.initials,
             "player_color": player.color,
             "prompt": sub["prompt"],
-            "image_url": f"/api/image/{sub['image_key']}" if sub.get("image_key") else None,
+            "image_url": sub.get("image_data_url"),
             "score": score,
         })
 
@@ -297,7 +301,7 @@ def run_comparison(lobby: GameLobby):
     push_event(lobby, {
         "type": "results_ready",
         "round": lobby.current_round,
-        "target_image_url": f"/api/image/{lobby.target_image_key}",
+        "target_image_url": lobby.target_image_data_url,
         "target_prompt": lobby.target_image["prompt"],
         "results": results,
         "round_history": lobby.round_history,
@@ -405,12 +409,12 @@ def submit_prompt(req: SubmitPromptRequest):
     if req.player_id in lobby.submissions:
         raise HTTPException(status_code=400, detail="Already submitted")
 
-    # Generate this player's image immediately
-    image_key = generate_image(req.prompt)
+    # Generate this player's image immediately → returns base64 data URL
+    image_data_url = generate_image_data_url(req.prompt)
 
     lobby.submissions[req.player_id] = {
         "prompt": req.prompt,
-        "image_key": image_key,
+        "image_data_url": image_data_url,
         "score": None,
     }
 
@@ -511,7 +515,7 @@ def game_action(req: GameActionRequest):
         lobby.round_history = []
         lobby.round_results = []
         lobby.submissions = {}
-        lobby.target_image_key = None
+        lobby.target_image_data_url = None
         for p in lobby.players.values():
             p.points = 0
             p.current_score = None
@@ -537,14 +541,6 @@ def game_action(req: GameActionRequest):
     return {"status": "ok"}
 
 
-@app.get("/api/image/{key}")
-def get_image(key: str):
-    data = IMAGE_STORE.get(key)
-    if not data:
-        raise HTTPException(status_code=404, detail="Image not found")
-    return Response(content=data, media_type="image/png")
-
-
 # ── Helpers ───────────────────────────────────────────────────────────────
 def _start_round(lobby: GameLobby):
     """Start a new round: pick target, generate target image, notify players."""
@@ -555,13 +551,13 @@ def _start_round(lobby: GameLobby):
 
     target = pick_target_image(lobby)
     lobby.target_image = target
-    lobby.target_image_key = generate_image(target["prompt"])
+    lobby.target_image_data_url = generate_image_data_url(target["prompt"])
     lobby.round_start_time = time.time()
 
     push_event(lobby, {
         "type": "round_started",
         "round": lobby.current_round,
         "total_rounds": lobby.total_rounds,
-        "target_image_url": f"/api/image/{lobby.target_image_key}",
+        "target_image_url": lobby.target_image_data_url,
         "time_limit": 60,
     })
