@@ -64,9 +64,6 @@ def _gemini_generate(prompt: str, save_path: str):
             response = gemini_client.models.generate_content(
                 model=GEMINI_MODEL,
                 contents=enhanced_prompt,
-                config=genai_types.GenerateContentConfig(
-                    response_modalities=["IMAGE"],
-                ),
             )
             elapsed = time.time() - start
 

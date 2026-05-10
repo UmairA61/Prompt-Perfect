@@ -84,9 +84,6 @@ def generate_image_data_url(prompt: str) -> str:
         response = gemini_client.models.generate_content(
             model=GEMINI_MODEL,
             contents=gen_prompt,
-            config=genai_types.GenerateContentConfig(
-                response_modalities=["IMAGE"],
-            ),
         )
         elapsed = time.time() - start
 
