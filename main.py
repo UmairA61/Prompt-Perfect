@@ -31,7 +31,7 @@ GENERATED_DIR = Path("generated_images")
 GENERATED_DIR.mkdir(exist_ok=True)
 TARGET_DIR = Path("target_images")
 TARGET_DIR.mkdir(exist_ok=True)
-# Vercel prod
+
 # Serve generated images
 app.mount("/images/generated", StaticFiles(directory=str(GENERATED_DIR)), name="generated")
 app.mount("/images/targets", StaticFiles(directory=str(TARGET_DIR)), name="targets")
