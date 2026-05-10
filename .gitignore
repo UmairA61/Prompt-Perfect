@@ -3,3 +3,8 @@ dist/
 .env
 .env.*
 npm-debug.log*
+__pycache__/
+*.png
+*.jpg
+*.jpeg
+*.log
