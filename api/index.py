@@ -298,6 +298,7 @@ def run_comparison(lobby: GameLobby):
     push_event(lobby, {
         "type": "results_ready",
         "round": lobby.current_round,
+        "total_rounds": lobby.total_rounds,
         "target_image_url": lobby.target_image_data_url,
         "target_prompt": lobby.target_image["prompt"],
         "results": results,

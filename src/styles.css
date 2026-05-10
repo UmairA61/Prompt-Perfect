@@ -1229,12 +1229,12 @@ textarea {
   min-width: 0;
 }
 
-/* Winner title — matches the landing page logo-title styling */
+/* Winner title — exact match of .logo-title from the landing page */
 .winner-title {
   margin: 0;
   font-family: 'Bangers', Impact, fantasy;
-  font-size: clamp(72px, 8vw, 110px);
-  line-height: 0.85;
+  font-size: clamp(100px, 10vw, 155px);
+  line-height: 0.82;
   letter-spacing: 0.02em;
   text-shadow: 12px 12px 0 var(--sky), -8px -8px 0 var(--pink);
   transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -1246,11 +1246,15 @@ textarea {
 
 .winner-name-line {
   display: block;
+  font-family: 'Arial Rounded MT Bold', 'Trebuchet MS', system-ui, sans-serif;
+  font-size: clamp(28px, 2.5vw, 40px);
+  font-weight: 800;
+  line-height: 1.1;
   color: var(--ink);
-  font-size: 0.45em;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   text-shadow: none;
   -webkit-text-stroke: 0;
+  margin-bottom: 8px;
 }
 
 .winner-prompt {

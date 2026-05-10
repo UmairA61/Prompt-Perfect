@@ -60,6 +60,7 @@ export function useGameState() {
             screen: 'results',
             results: {
               round: msg.round,
+              totalRounds: msg.total_rounds,
               targetImageUrl: msg.target_image_url,
               targetPrompt: msg.target_prompt,
               players: msg.results,
