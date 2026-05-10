@@ -9,6 +9,7 @@ import time
 import random
 import string
 import io
+import traceback
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException
@@ -22,14 +23,26 @@ load_dotenv()
 hf_token = os.environ.get("HF_TOKEN", "")
 HF_AVAILABLE = False
 hf_client = None
+HF_INIT_ERROR = ""
 
 if hf_token:
     try:
         from huggingface_hub import InferenceClient
         hf_client = InferenceClient(api_key=hf_token)
         HF_AVAILABLE = True
-    except ImportError:
-        pass
+    except ImportError as e:
+        HF_INIT_ERROR = f"ImportError: {e}"
+    except Exception as e:
+        HF_INIT_ERROR = f"Init error: {e}"
+else:
+    HF_INIT_ERROR = "HF_TOKEN environment variable not set"
+
+# Models to try in order (primary → fallbacks)
+HF_MODELS = [
+    "black-forest-labs/FLUX.1-schnell",
+    "stabilityai/stable-diffusion-xl-base-1.0",
+    "black-forest-labs/FLUX.1-dev",
+]
 
 app = FastAPI(title="Prompt Perfect")
 
@@ -52,6 +65,73 @@ TARGET_IMAGES = [
     {"id": "cute_1", "category": "Cute / Cozy", "prompt": "A tiny cottage with a thatched roof surrounded by wildflowers with smoke from the chimney"},
     {"id": "cute_2", "category": "Cute / Cozy", "prompt": "A fluffy baby fox sleeping next to a stack of books by a warm fireplace"},
 ]
+
+
+# ── Image Generation ──────────────────────────────────────────────────────
+def generate_image(prompt: str) -> str:
+    """Generate an image with retries across multiple models. Always returns a key."""
+    key = f"img_{uuid.uuid4().hex[:12]}"
+
+    if not HF_AVAILABLE:
+        print(f"[IMG] HF not available: {HF_INIT_ERROR}. Using placeholder.")
+        IMAGE_STORE[key] = _make_placeholder(prompt)
+        return key
+
+    # Ensure prompt is long enough for good generation
+    gen_prompt = prompt.strip()
+    if len(gen_prompt) < 15:
+        gen_prompt = f"{gen_prompt}, detailed digital illustration, vibrant colors, high quality, 4k"
+
+    # Try each model
+    for model in HF_MODELS:
+        try:
+            print(f"[IMG] Trying model={model} prompt='{gen_prompt[:60]}...'")
+            image = hf_client.text_to_image(
+                gen_prompt,
+                model=model,
+            )
+            if image is None:
+                print(f"[IMG] Model {model} returned None")
+                continue
+            buf = io.BytesIO()
+            image.save(buf, format="PNG")
+            img_bytes = buf.getvalue()
+            if len(img_bytes) < 1000:
+                print(f"[IMG] Model {model} returned suspiciously small image ({len(img_bytes)} bytes)")
+                continue
+            IMAGE_STORE[key] = img_bytes
+            print(f"[IMG] SUCCESS with {model}: {len(img_bytes)} bytes")
+            return key
+        except Exception as e:
+            print(f"[IMG] Model {model} FAILED: {type(e).__name__}: {e}")
+            continue
+
+    # All models failed — use placeholder
+    print(f"[IMG] ALL MODELS FAILED for prompt '{prompt[:50]}'. Using placeholder.")
+    IMAGE_STORE[key] = _make_placeholder(prompt)
+    return key
+
+
+def _make_placeholder(prompt: str) -> bytes:
+    """Generate a colored placeholder PNG."""
+    try:
+        from PIL import Image, ImageDraw
+        r, g, b = random.randint(100, 220), random.randint(100, 220), random.randint(100, 220)
+        img = Image.new("RGB", (512, 512), (r, g, b))
+        draw = ImageDraw.Draw(img)
+        for i in range(0, 512, 64):
+            draw.line([(i, 0), (512, 512 - i)], fill=(r - 30, g - 30, b - 30), width=2)
+        text = prompt[:60] + ("..." if len(prompt) > 60 else "")
+        draw.rectangle([(20, 400), (492, 492)], fill=(0, 0, 0))
+        draw.text((30, 420), text, fill=(255, 255, 255))
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        return buf.getvalue()
+    except Exception:
+        import base64
+        return base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+        )
 
 
 # ── Game State ────────────────────────────────────────────────────────────
@@ -155,51 +235,6 @@ def generate_lobby_code() -> str:
             return code
 
 
-# ── Image Generation ──────────────────────────────────────────────────────
-def generate_image(prompt: str) -> str:
-    """Generate an image, store in memory, return the key."""
-    key = f"img_{uuid.uuid4().hex[:12]}"
-
-    if HF_AVAILABLE:
-        try:
-            image = hf_client.text_to_image(
-                prompt if len(prompt) >= 20 else f"{prompt}, detailed digital illustration, high quality",
-                model="black-forest-labs/FLUX.1-schnell"
-            )
-            buf = io.BytesIO()
-            image.save(buf, format="PNG")
-            IMAGE_STORE[key] = buf.getvalue()
-            return key
-        except Exception as e:
-            print(f"HF generation failed: {e}")
-
-    # Fallback: placeholder image
-    IMAGE_STORE[key] = _make_placeholder(prompt)
-    return key
-
-
-def _make_placeholder(prompt: str) -> bytes:
-    """Generate a colored placeholder PNG."""
-    try:
-        from PIL import Image, ImageDraw
-        r, g, b = random.randint(100, 220), random.randint(100, 220), random.randint(100, 220)
-        img = Image.new("RGB", (512, 512), (r, g, b))
-        draw = ImageDraw.Draw(img)
-        for i in range(0, 512, 64):
-            draw.line([(i, 0), (512, 512 - i)], fill=(r - 30, g - 30, b - 30), width=2)
-        text = prompt[:60] + ("..." if len(prompt) > 60 else "")
-        draw.rectangle([(20, 400), (492, 492)], fill=(0, 0, 0))
-        draw.text((30, 420), text, fill=(255, 255, 255))
-        buf = io.BytesIO()
-        img.save(buf, format="PNG")
-        return buf.getvalue()
-    except Exception:
-        # Minimal 1x1 PNG fallback
-        import base64
-        return base64.b64decode(
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-        )
-
 
 def pick_target_image(lobby: GameLobby) -> dict:
     """Select a target image for the round."""
@@ -297,7 +332,13 @@ class GameActionRequest(BaseModel):
 # ── API Endpoints ─────────────────────────────────────────────────────────
 @app.get("/api")
 def root():
-    return {"status": "Prompt Perfect Server Online"}
+    return {
+        "status": "Prompt Perfect Server Online",
+        "hf_available": HF_AVAILABLE,
+        "hf_token_set": bool(hf_token),
+        "hf_error": HF_INIT_ERROR if not HF_AVAILABLE else None,
+        "models": HF_MODELS,
+    }
 
 
 @app.post("/api/lobby/create")
