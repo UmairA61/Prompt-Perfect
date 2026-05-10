@@ -366,8 +366,7 @@ textarea {
 
 .page-heading h2,
 .round-top h2,
-.results-heading h2,
-.celebration h2 {
+.results-heading h2 {
   margin: 0;
   font-size: 46px;
   line-height: 0.95;
@@ -1176,12 +1175,23 @@ textarea {
 }
 
 .leaderboard-screen {
-  display: grid;
-  grid-template-columns: 1fr 500px;
+  justify-content: center;
+  align-items: center;
+}
+
+.leaderboard-layout {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
   gap: 40px;
   max-width: 1400px;
-  margin: 40px auto;
+  margin: 0 auto;
   width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .celebration,
@@ -1191,31 +1201,78 @@ textarea {
 }
 
 .leaderboard-sidebar {
+  flex: 0 0 480px;
   display: flex;
   flex-direction: column;
   gap: 24px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+/* Scrollbar styling for sidebar */
+.leaderboard-sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+.leaderboard-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.leaderboard-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(25, 25, 25, 0.18);
+  border-radius: 999px;
 }
 
 .celebration {
+  flex: 1;
   align-self: center;
   text-align: center;
+  min-width: 0;
 }
 
-.celebration h2 {
+/* Winner title — matches the landing page logo-title styling */
+.winner-title {
+  margin: 0;
   font-family: 'Bangers', Impact, fantasy;
-  font-size: 88px;
-  letter-spacing: 0.01em;
-  text-shadow: 7px 7px 0 var(--sky), -5px -5px 0 var(--pink);
+  font-size: clamp(72px, 8vw, 110px);
+  line-height: 0.85;
+  letter-spacing: 0.02em;
+  text-shadow: 12px 12px 0 var(--sky), -8px -8px 0 var(--pink);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.winner-title:hover {
+  transform: scale(1.05) rotate(-2deg);
+}
+
+.winner-name-line {
+  display: block;
+  color: var(--ink);
+  font-size: 0.45em;
+  letter-spacing: 0.04em;
+  text-shadow: none;
+  -webkit-text-stroke: 0;
+}
+
+.winner-prompt {
+  display: block;
+  color: var(--white);
+  -webkit-text-stroke: 4px var(--ink);
+}
+
+.winner-perfect {
+  display: block;
+  color: var(--lemon);
+  -webkit-text-stroke: 4px var(--ink);
 }
 
 .trophy-card {
-  width: 430px;
-  min-height: 260px;
+  width: 380px;
+  min-height: 220px;
   display: grid;
   justify-items: center;
   gap: 8px;
-  margin: 44px auto 34px;
-  padding: 30px;
+  margin: 32px auto 28px;
+  padding: 26px;
   border: var(--border);
   border-radius: 40px;
   background: var(--lemon);
@@ -1223,17 +1280,16 @@ textarea {
 }
 
 .trophy-card strong {
-  font-size: 38px;
+  font-size: 34px;
 }
 
 .trophy-card span {
-  font-size: 25px;
+  font-size: 23px;
   font-weight: 800;
 }
 
 .leaderboard-list {
   align-self: start;
-  min-height: 540px;
   padding: 24px;
   background: var(--white);
 }
