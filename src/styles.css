@@ -440,10 +440,10 @@ textarea {
 }
 
 .hero-card {
-  width: 560px;
+  width: 700px;
   min-height: 0;
   max-height: 90vh;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .hero-card > p {
@@ -454,7 +454,7 @@ textarea {
 
 .hero-media {
   position: relative;
-  height: 280px;
+  height: 340px;
   margin-top: 22px;
 }
 
@@ -478,7 +478,7 @@ textarea {
 }
 
 .mini-note {
-  top: 20px;
+  top: -5px;
   rotate: 4deg;
 }
 
