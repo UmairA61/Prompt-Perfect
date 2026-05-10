@@ -1348,6 +1348,359 @@ textarea {
   font-size: 20px;
 }
 
+/* Final leaderboard polish */
+.leaderboard-screen {
+  isolation: isolate;
+}
+
+.leaderboard-layout {
+  display: grid;
+  grid-template-columns: minmax(640px, 1fr) minmax(430px, 520px);
+  align-items: center;
+  gap: clamp(42px, 5vw, 86px);
+  max-width: 1580px;
+  overflow: visible;
+}
+
+.leaderboard-sidebar {
+  justify-self: end;
+  width: min(100%, 520px);
+  flex: initial;
+  gap: 22px;
+  overflow: visible;
+  padding: 28px 26px 30px;
+}
+
+.leaderboard-sidebar::before {
+  content: '';
+  position: absolute;
+  inset: -26px -28px -30px -24px;
+  z-index: -2;
+  border: 4px solid rgba(25, 25, 25, 0.16);
+  border-radius: 38px;
+  background:
+    repeating-linear-gradient(135deg, rgba(101, 217, 255, 0.18) 0 16px, rgba(255, 255, 255, 0.18) 16px 32px),
+    rgba(255, 255, 255, 0.36);
+  box-shadow: 14px 14px 0 rgba(25, 25, 25, 0.12);
+  transform: rotate(-1deg);
+}
+
+.leaderboard-sidebar::after {
+  content: '';
+  position: absolute;
+  right: -50px;
+  top: 88px;
+  z-index: -1;
+  width: 126px;
+  height: 126px;
+  background: conic-gradient(
+    from 8deg,
+    var(--lemon) 0 12deg,
+    transparent 12deg 24deg,
+    var(--pink) 24deg 36deg,
+    transparent 36deg 48deg,
+    var(--sky) 48deg 60deg,
+    transparent 60deg 72deg
+  );
+  opacity: 0.82;
+  clip-path: polygon(50% 0, 59% 31%, 91% 16%, 72% 45%, 100% 62%, 66% 66%, 72% 100%, 50% 74%, 28% 100%, 34% 66%, 0 62%, 28% 45%, 9% 16%, 41% 31%);
+  animation: fanfareSpin 18s linear infinite;
+}
+
+.leaderboard-fanfare {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.fanfare-slab,
+.fanfare-spark {
+  position: absolute;
+  display: block;
+}
+
+.fanfare-slab {
+  border: 4px solid var(--ink);
+  border-radius: 18px;
+  box-shadow: 6px 6px 0 rgba(25, 25, 25, 0.18);
+}
+
+.fanfare-slab-a {
+  right: -26px;
+  bottom: 52px;
+  width: 116px;
+  height: 44px;
+  background: var(--sky);
+  transform: rotate(-10deg);
+}
+
+.fanfare-slab-b {
+  right: 88px;
+  bottom: -16px;
+  width: 92px;
+  height: 38px;
+  background: var(--lemon);
+  transform: rotate(8deg);
+}
+
+.fanfare-slab-c {
+  left: -12px;
+  top: 118px;
+  width: 76px;
+  height: 34px;
+  background: var(--lime);
+  transform: rotate(14deg);
+}
+
+.fanfare-spark {
+  width: 36px;
+  height: 36px;
+  background: var(--white);
+  filter: drop-shadow(4px 4px 0 rgba(25, 25, 25, 0.18));
+  clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 56%, 79% 91%, 50% 70%, 21% 91%, 32% 56%, 2% 35%, 39% 35%);
+  animation: twinkle 1.1s ease-in-out infinite alternate;
+}
+
+.fanfare-spark-a {
+  top: -8px;
+  right: 56px;
+}
+
+.fanfare-spark-b {
+  right: -8px;
+  bottom: 152px;
+  width: 28px;
+  height: 28px;
+  background: var(--lemon);
+  animation-delay: 0.45s;
+}
+
+@keyframes fanfareSpin {
+  to { transform: rotate(360deg); }
+}
+
+.celebration {
+  max-width: 850px;
+  justify-self: center;
+}
+
+.winner-title {
+  display: grid;
+  justify-items: center;
+  font-size: clamp(96px, 8.8vw, 148px);
+}
+
+.winner-name-line {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 14px;
+  max-width: min(760px, 100%);
+  margin: 0 0 2px;
+  padding: 10px 24px 9px;
+  border: 4px solid var(--ink);
+  border-radius: 999px;
+  background: var(--white);
+  box-shadow: 7px 7px 0 var(--sky), -5px -5px 0 rgba(255, 95, 162, 0.78);
+  transform: rotate(-1.4deg);
+}
+
+.winner-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: clamp(38px, 3.8vw, 62px);
+}
+
+.winner-is {
+  flex: 0 0 auto;
+  color: var(--pink);
+  font-size: clamp(22px, 1.7vw, 31px);
+  text-transform: uppercase;
+}
+
+.trophy-card {
+  position: relative;
+  width: min(430px, 78%);
+  min-height: 208px;
+  margin: 38px auto 28px;
+  border-radius: 38px;
+  background:
+    radial-gradient(circle at 80% 16%, rgba(255, 255, 255, 0.68) 0 34px, transparent 35px),
+    var(--lemon);
+  overflow: visible;
+}
+
+.trophy-card::before {
+  content: '';
+  position: absolute;
+  inset: 14px;
+  border: 3px dashed rgba(25, 25, 25, 0.2);
+  border-radius: 28px;
+  pointer-events: none;
+}
+
+.trophy-card::after {
+  content: '';
+  position: absolute;
+  top: -22px;
+  right: 42px;
+  width: 92px;
+  height: 38px;
+  border: 4px solid var(--ink);
+  border-radius: 999px;
+  background: var(--sky);
+  box-shadow: 5px 5px 0 rgba(25, 25, 25, 0.18);
+  transform: rotate(8deg);
+}
+
+.trophy-card > span:not(.avatar) {
+  font-size: 23px;
+  font-weight: 800;
+}
+
+.trophy-card .avatar-lg {
+  width: 120px;
+  height: 120px;
+  font-size: 36px;
+}
+
+.leaderboard-list {
+  width: 100%;
+  align-self: stretch;
+  padding: 24px 24px 26px;
+  transform: rotate(0.5deg);
+}
+
+.leaderboard-card-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.leaderboard-card-title h3 {
+  white-space: nowrap;
+}
+
+.leaderboard-card-title span {
+  flex: 0 0 auto;
+  padding: 7px 10px 5px;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  background: var(--lemon);
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.leader-row {
+  display: grid;
+  grid-template-columns: 38px 50px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 58px;
+  margin-top: 11px;
+  padding: 8px 12px;
+  border-radius: 22px;
+  font-size: 21px;
+}
+
+.leader-row strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leader-row em {
+  justify-self: end;
+  margin-left: 0;
+  white-space: nowrap;
+}
+
+.place-1 {
+  box-shadow: 6px 6px 0 rgba(25, 25, 25, 0.14);
+  transform: rotate(-0.5deg) translateX(-4px);
+}
+
+.round-history {
+  width: 100%;
+  padding: 24px 24px 26px;
+  transform: rotate(-0.7deg);
+}
+
+.round-history .history-row {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin-top: 11px;
+  padding: 10px 12px;
+  border: 3px solid var(--ink);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.72);
+  font-size: 18px;
+}
+
+.round-history .history-row strong {
+  display: grid;
+  place-items: center;
+  min-height: 38px;
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  background: var(--white);
+}
+
+.round-history .history-row span {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+@media (max-width: 1320px) {
+  .leaderboard-layout {
+    grid-template-columns: minmax(570px, 1fr) minmax(390px, 430px);
+    gap: 32px;
+  }
+
+  .leaderboard-sidebar {
+    padding: 22px 18px 24px;
+  }
+
+  .winner-title {
+    font-size: clamp(86px, 8vw, 126px);
+  }
+}
+
+@media (max-height: 820px) {
+  .winner-title {
+    font-size: clamp(82px, 8vw, 126px);
+  }
+
+  .winner-name-line {
+    padding-block: 8px 7px;
+  }
+
+  .trophy-card {
+    min-height: 178px;
+    margin: 26px auto 20px;
+    padding: 20px;
+  }
+
+  .trophy-card .avatar-lg {
+    width: 104px;
+    height: 104px;
+  }
+
+  .leader-row {
+    min-height: 52px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
