@@ -15,40 +15,26 @@ export function useGameState() {
     error: null,
   });
 
-  const wsRef = useRef(null);
+  const pollRef = useRef(null);
   const stateRef = useRef(state);
   stateRef.current = state;
 
   const update = (patch) => setState((s) => ({ ...s, ...patch }));
 
-  const refreshLobby = useCallback((code) => {
-    fetch(`${API}/lobby/${code}`).then(r => r.json()).then(d => {
-      if (d.lobby) update({ lobby: d.lobby });
-    }).catch(() => {});
-  }, []);
-
-  const connectWs = useCallback((code, pid) => {
-    if (wsRef.current) wsRef.current.close();
-    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-    const ws = new WebSocket(`${proto}://${location.host}/ws/${code}/${pid}`);
-    wsRef.current = ws;
-
-    ws.onmessage = (e) => {
-      const msg = JSON.parse(e.data);
+  // Process events from polling (same logic as old WebSocket handler)
+  const processEvents = useCallback((events, lobbyData) => {
+    for (const msg of events) {
       switch (msg.type) {
-        case 'state_sync':
-          update({ lobby: msg.lobby });
-          break;
         case 'player_joined':
         case 'player_ready':
         case 'player_disconnected':
         case 'player_left':
-          refreshLobby(code);
+          // Lobby state is included in poll response
+          if (lobbyData) update({ lobby: lobbyData });
           break;
         case 'host_transferred':
-          // Check if we became the new host
           update({ isHost: msg.new_host_id === stateRef.current.playerId });
-          refreshLobby(code);
+          if (lobbyData) update({ lobby: lobbyData });
           break;
         case 'round_started':
           update({
@@ -64,12 +50,10 @@ export function useGameState() {
           });
           break;
         case 'prompt_submitted':
-          refreshLobby(code);
+          if (lobbyData) update({ lobby: lobbyData });
           break;
         case 'generating_started':
           update({ screen: 'generating' });
-          break;
-        case 'player_generated':
           break;
         case 'results_ready':
           update({
@@ -101,14 +85,50 @@ export function useGameState() {
           });
           break;
         case 'lobby_closed':
-          update({ screen: 'home', lobby: null, lobbyCode: null, playerId: null, isHost: false, error: 'Lobby was closed by the host.' });
-          if (wsRef.current) { wsRef.current.close(); wsRef.current = null; }
+          stopPolling();
+          update({
+            screen: 'home',
+            lobby: null,
+            lobbyCode: null,
+            playerId: null,
+            isHost: false,
+            error: msg.reason || 'Lobby was closed.',
+          });
           break;
       }
-    };
+    }
+  }, []);
 
-    ws.onclose = () => { wsRef.current = null; };
-  }, [refreshLobby]);
+  const startPolling = useCallback((code, pid) => {
+    stopPolling();
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`${API}/poll/${code}/${pid}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.events && data.events.length > 0) {
+          processEvents(data.events, data.lobby);
+        } else if (data.lobby) {
+          // Always sync lobby state
+          update({ lobby: data.lobby });
+        }
+      } catch (err) {
+        // Silently ignore poll errors
+      }
+    }, 2000);
+  }, [processEvents]);
+
+  function stopPolling() {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }
+
+  // Clean up polling on unmount
+  useEffect(() => {
+    return () => stopPolling();
+  }, []);
 
   const actions = {
     createLobby: async (name, rounds, maxPlayers, category) => {
@@ -118,9 +138,13 @@ export function useGameState() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ host_name: name, rounds, max_players: maxPlayers, category }),
         });
+        if (!res.ok) {
+          const e = await res.json().catch(() => ({ detail: 'Server error' }));
+          throw new Error(e.detail || 'Failed to create lobby');
+        }
         const data = await res.json();
         update({ playerId: data.host_id, lobbyCode: data.code, isHost: true, lobby: data.lobby, screen: 'hostLobby' });
-        connectWs(data.code, data.host_id);
+        startPolling(data.code, data.host_id);
       } catch (err) {
         update({ error: err.message });
       }
@@ -133,40 +157,62 @@ export function useGameState() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code, player_name: name }),
         });
-        if (!res.ok) { const e = await res.json(); throw new Error(e.detail); }
+        if (!res.ok) {
+          const e = await res.json().catch(() => ({ detail: 'Server error' }));
+          throw new Error(e.detail || 'Failed to join lobby');
+        }
         const data = await res.json();
         update({ playerId: data.player_id, lobbyCode: code.toUpperCase(), isHost: false, lobby: data.lobby, screen: 'playerLobby' });
-        connectWs(code.toUpperCase(), data.player_id);
+        startPolling(code.toUpperCase(), data.player_id);
       } catch (err) {
         update({ error: err.message });
       }
     },
 
-    sendWs: (msg) => {
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify(msg));
-      }
-    },
-
-    submitPrompt: async (prompt) => {
+    sendAction: async (actionType) => {
+      const { lobbyCode, playerId } = stateRef.current;
+      if (!lobbyCode || !playerId) return;
       try {
-        await fetch(`${API}/round/submit`, {
+        await fetch(`${API}/game/action`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lobby_code: stateRef.current.lobbyCode, player_id: stateRef.current.playerId, prompt }),
+          body: JSON.stringify({ lobby_code: lobbyCode, player_id: playerId, action: actionType }),
         });
       } catch (err) {
         update({ error: err.message });
       }
     },
 
+    // Keep sendWs as alias for sendAction (for component compatibility)
+    sendWs: (msg) => {
+      actions.sendAction(msg.type);
+    },
+
+    submitPrompt: async (prompt) => {
+      try {
+        const res = await fetch(`${API}/round/submit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lobby_code: stateRef.current.lobbyCode, player_id: stateRef.current.playerId, prompt }),
+        });
+        if (!res.ok) {
+          const e = await res.json().catch(() => ({ detail: 'Submit failed' }));
+          throw new Error(e.detail || 'Submit failed');
+        }
+      } catch (err) {
+        update({ error: err.message });
+      }
+    },
+
     closeLobby: () => {
-      actions.sendWs({ type: 'close_lobby' });
+      actions.sendAction('close_lobby');
+      stopPolling();
       update({ screen: 'home', lobby: null, lobbyCode: null, playerId: null, isHost: false });
     },
 
     leaveLobby: () => {
-      actions.sendWs({ type: 'leave_lobby' });
+      actions.sendAction('leave_lobby');
+      stopPolling();
       update({ screen: 'home', lobby: null, lobbyCode: null, playerId: null, isHost: false });
     },
 
