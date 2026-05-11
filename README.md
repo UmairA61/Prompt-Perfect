@@ -6,6 +6,10 @@
 [![GitHub](https://img.shields.io/badge/Source-GitHub-blue?style=flat-square&logo=github)](https://github.com/UmairA61/Prompt-Perfect)
 <img width="806" height="396" alt="image" src="https://github.com/user-attachments/assets/274fd10d-2fcf-4872-ae20-1a44d4db6b34" />
 
+
+## Demo Video
+
+[![Watch the demo](https://img.youtube.com/vi/ePE3gbgyHQg/maxresdefault.jpg)](https://youtu.be/ePE3gbgyHQg)
 ---
 
 ## 🌟 Project Inspiration
@@ -49,17 +53,22 @@ Built with a high-concurrency architecture to ensure a seamless, real-time multi
 1.  **Enter the Lobby:** Players gather and prepare for the challenge.
 <img width="806" height="453" alt="image" src="https://github.com/user-attachments/assets/a4d23868-5e06-4942-b222-a752e81ae489" />
 
+
 2.  **Analyze the Target:** A unique, AI-generated image is presented. Players have 60 seconds to "reverse-engineer" the prompt.
 <img width="806" height="453" alt="image" src="https://github.com/user-attachments/assets/ad4b263e-56b3-4331-942c-444870739ae2" />
+
 
 3.  **Submission:** Players craft their best prompt and submit.
 <img width="806" height="453" alt="image" src="https://github.com/user-attachments/assets/20b43e61-f480-4292-9f7f-0e9d11ac6dcc" />
 
+
 4.  **The Reveal & Judging:** The server generates images for all players simultaneously. The Gemini Vision Judge compares each attempt to the target.
 <img width="806" height="453" alt="image" src="https://github.com/user-attachments/assets/e581458b-e8b6-4402-be52-a767cfc1a646" />
 
+
 5.  **Victory:** The final leaderboard shows who best understood the AI's "brain."
 <img width="806" height="453" alt="image" src="https://github.com/user-attachments/assets/fe34bad1-2f8e-4eb9-a4ec-75ff91df1fb7" />
+
 
 ---
 
