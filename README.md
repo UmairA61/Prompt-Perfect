@@ -9,7 +9,7 @@
 
 ## Demo Video
 
-[![Watch the demo](https://img.youtube.com/vi/ePE3gbgyHQg/maxresdefault.jpg)](https://youtu.be/ePE3gbgyHQg)
+[![Watch the demo](https://img.youtube.com/vi/ePE3gbgyHQg/hqdefault.jpg)](https://youtu.be/ePE3gbgyHQg)
 ---
 
 ## 🌟 Project Inspiration
