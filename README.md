@@ -83,3 +83,4 @@ Built with a high-concurrency architecture to ensure a seamless, real-time multi
 ---
 
 *Created for the GDGHacks 2026 @ UOFG.*
+*Best UI/UX Winner*
