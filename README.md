@@ -1,8 +1,6 @@
 # Prompt Perfect 🎨✨
 
 **The ultimate multiplayer challenge to master the art of prompting.**
-*Created for the GDGHacks 2026 @ UOFG.*
-*Best UI/UX Winner*
 
 [![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=flat-square&logo=vercel)](https://prompt-perfect-three.vercel.app/)
 [![GitHub](https://img.shields.io/badge/Source-GitHub-blue?style=flat-square&logo=github)](https://github.com/UmairA61/Prompt-Perfect)
@@ -83,3 +81,6 @@ Built with a high-concurrency architecture to ensure a seamless, real-time multi
 5.  Check your score and try to climb the leaderboard!
 
 ---
+
+*Created for the GDGHacks 2026 @ UOFG.*
+*Best UI/UX Winner*
